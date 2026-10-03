@@ -122,10 +122,16 @@ jobs:
             echo "- ⚠️ 与官方签名不同，安装前需先卸载已安装的官方版本" >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      # ⚠️ Full 与 Lite 必须分两次 Gradle 调用：
+      #    shared/build.gradle.kts 通过 gradle.startParameter.taskNames 反推要挂
+      #    androidMain.dependsOn(androidFull | androidLite)，并 require 变体数 <= 1，
+      #    两个 flavor 放在同一次调用里会直接抛
+      #    "Full and Lite Android tasks require separate Gradle invocations"。
       - name: Build release APKs
         run: |
           set -euo pipefail
-          bash ./gradlew assembleFullRelease assembleLiteRelease --stacktrace
+          bash ./gradlew assembleFullRelease --stacktrace
+          bash ./gradlew assembleLiteRelease --stacktrace
 
       - name: Collect APKs
         id: collect
