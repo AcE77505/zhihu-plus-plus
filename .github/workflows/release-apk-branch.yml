@@ -98,18 +98,25 @@ jobs:
             echo "- 签名方式：仓库 secret（与官方发布同签名）" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "mode=temp-keystore" >> "$GITHUB_OUTPUT"
+            # ⚠️ -dname 按 RFC 2253 解析，'+'、','、'"' 等是特殊字符：
+            #    '+' 是多值 RDN 分隔符，写成 O=Zhihu++ 会让 keytool 报
+            #    "Malformed distinguished name"。这里只用字母/数字/空格。
+            keystore="$RUNNER_TEMP/zhihu-ci-temp.p12"
+            storepass="zhihuplusplus"
             keytool -genkeypair -v \
-              -keystore "$RUNNER_TEMP/zhihu-ci-temp.p12" \
+              -keystore "$keystore" \
               -storetype PKCS12 \
               -alias zhihu-ci-temp \
               -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass zhihuplusplus -keypass zhihuplusplus \
-              -dname "CN=Zhihu++ Temporary CI, OU=CI, O=Zhihu++, L=Tianjin, ST=Tianjin, C=CN"
+              -storepass "$storepass" -keypass "$storepass" \
+              -dname "CN=ZhihuPlusPlus Temporary CI, OU=CI, O=ZhihuPlusPlus, L=Tianjin, ST=Tianjin, C=CN"
+            # 自检一次，避免把坏 keystore 传给后面的 Gradle 才报错
+            keytool -list -keystore "$keystore" -storepass "$storepass" -alias zhihu-ci-temp
             {
-              echo "signingKey=$(base64 -w0 "$RUNNER_TEMP/zhihu-ci-temp.p12")"
+              echo "signingKey=$(base64 -w0 "$keystore")"
               echo "keyAlias=zhihu-ci-temp"
-              echo "keyStorePassword=zhihuplusplus"
-              echo "keyPassword=zhihuplusplus"
+              echo "keyStorePassword=$storepass"
+              echo "keyPassword=$storepass"
             } >> "$GITHUB_ENV"
             echo "- 签名方式：CI 临时 keystore（未检测到 ANDROID_SIGNING_KEY）" >> "$GITHUB_STEP_SUMMARY"
             echo "- ⚠️ 与官方签名不同，安装前需先卸载已安装的官方版本" >> "$GITHUB_STEP_SUMMARY"
