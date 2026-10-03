@@ -24,6 +24,7 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
+import android.net.Uri
 import android.util.Base64
 import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
@@ -158,8 +159,9 @@ private fun configureWebLogin(
 
         override fun onPageFinished(view: WebView?, url: String?) {
             super.onPageFinished(view, url)
-            if (url == ZHIHU_HOME_URL) {
-                onCookiesReady(readWebViewCookies(url))
+            val cookies = readWebViewCookies(url)
+            if (shouldCaptureWebLoginCookies(url, cookies)) {
+                onCookiesReady(cookies)
             }
         }
     }
@@ -202,6 +204,15 @@ private fun configureRiskControlWebView(
 }
 
 private const val BACKUP_WEB_LOGIN_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+
+private fun shouldCaptureWebLoginCookies(
+    url: String?,
+    cookies: Map<String, String>,
+): Boolean {
+    if (!cookies.containsKey("z_c0")) return false
+    val host = url?.let(Uri::parse)?.host?.lowercase() ?: return false
+    return host == "www.zhihu.com" || host == "zhihu.com"
+}
 
 private fun readWebViewCookies(url: String?): Map<String, String> =
     parseCookieAssignments(
