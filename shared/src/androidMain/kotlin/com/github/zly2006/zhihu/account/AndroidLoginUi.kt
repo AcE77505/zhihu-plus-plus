@@ -149,16 +149,12 @@ private fun configureWebLogin(
 ) {
     webView.setupUpWebviewClient()
     webView.settings.javaScriptEnabled = true
+    webView.settings.userAgentString = BACKUP_WEB_LOGIN_USER_AGENT
     webView.webViewClient = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(
             view: WebView?,
             request: WebResourceRequest,
-        ): Boolean {
-            if (request.url.toString() == ZHIHU_HOME_URL) {
-                webView.settings.userAgentString = AccountData.ANDROID_USER_AGENT
-            }
-            return request.url?.scheme == "zhihu"
-        }
+        ): Boolean = request.url?.scheme == "zhihu"
 
         override fun onPageFinished(view: WebView?, url: String?) {
             super.onPageFinished(view, url)
@@ -204,6 +200,8 @@ private fun configureRiskControlWebView(
         webView.loadUrl(url)
     }
 }
+
+private const val BACKUP_WEB_LOGIN_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
 
 private fun readWebViewCookies(url: String?): Map<String, String> =
     parseCookieAssignments(
